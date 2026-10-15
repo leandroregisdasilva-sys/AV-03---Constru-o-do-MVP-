@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Análise de calibração{% endblock %} · Schulz × UniSENAI</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="in">
+      <a class="marca" href="/">Certificados de Calibração<small>MVP · Projeto Aplicado III · Schulz Metrologia</small></a>
+      <nav aria-label="Principal">
+        <a href="/" {% if pagina_ativa|default('') == 'inicio' %}aria-current="page"{% endif %}>Nova análise</a>
+        <a href="/historico" {% if pagina_ativa|default('') == 'historico' %}aria-current="page"{% endif %}>Histórico</a>
+      </nav>
+    </div>
+  </header>
+  <main class="{% block classe_main %}{% endblock %}">
+    {% block conteudo %}{% endblock %}
+  </main>
+  <footer>Interface web v{{ versao }} · cálculos executados pelo serviço de metrologia · valores em mm.</footer>
+</body>
+</html>

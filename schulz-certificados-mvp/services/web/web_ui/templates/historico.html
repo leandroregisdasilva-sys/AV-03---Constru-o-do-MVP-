@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set pagina_ativa = 'historico' %}
+{% block titulo %}Histórico{% endblock %}
+{% block classe_main %}largo{% endblock %}
+{% block conteudo %}
+<h1>Histórico de análises</h1>
+<p class="sub">{{ lista.total }} análise(s) registrada(s). Os registros são imutáveis (rastreabilidade para auditoria).</p>
+{% if lista.itens %}
+<div class="tabela-wrap">
+<table style="min-width:760px">
+  <thead><tr><th>Nº</th><th>Processada em</th><th>Arquivo</th><th>Instrumento</th><th>Cliente</th><th>Pontos fora</th><th>Parecer</th></tr></thead>
+  <tbody>
+  {% for i in lista.itens %}
+    <tr class="{{ 'fora' if i.resultado_geral == 'REPROVADO' else '' }}">
+      <td><a href="/analises/{{ i.id_calibracao }}">{{ i.id_calibracao }}</a></td>
+      <td>{{ i.criado_em | fmt_datahora }}</td>
+      <td class="ponto">{{ i.arquivo_nome }}</td>
+      <td>{{ i.codigo_instrumento or '—' }}</td>
+      <td>{{ i.cliente or '—' }}</td>
+      <td>{{ i.pontos_fora }} / {{ i.total_pontos }}</td>
+      <td>{% if i.resultado_geral == 'APROVADO' %}<span class="badge ok">✔ APROVADO</span>{% else %}<span class="badge bad">✖ REPROVADO</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="card vazio">Nenhuma análise ainda. <a href="/">Envie a primeira planilha.</a></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block titulo %}Análise nº {{ analise.id_calibracao }}{% endblock %}
+{% block classe_main %}largo{% endblock %}
+{% block conteudo %}
+{% set r = analise.resumo %}
+{% set m = analise.metadados %}
+{% set aprovado = analise.parecer == 'APROVADO' %}
+<h1>Análise nº {{ analise.id_calibracao }}</h1>
+<p class="sub">{{ analise.arquivo.nome }} · {{ rotulo_formato(analise.arquivo.formato) }} (aba “{{ analise.arquivo.aba }}”) · processada em {{ analise.criado_em | fmt_datahora }}</p>
+
+<section class="parecer {{ 'aprovado' if aprovado else 'reprovado' }}" role="status" aria-label="Parecer final">
+  <div class="icone" aria-hidden="true">{{ '✔' if aprovado else '✖' }}</div>
+  <div>
+    <div class="tit">PARECER FINAL: INSTRUMENTO {{ analise.parecer }}</div>
+    <div class="det">
+      {% if aprovado %}Todos os {{ r.total_pontos }} pontos estão dentro da tolerância.
+      {% else %}{{ r.fora_da_tolerancia }} de {{ r.total_pontos }} pontos fora da tolerância: {{ r.pontos_fora | join(', ') }}.{% endif %}
+    </div>
+  </div>
+</section>
+
+<dl class="meta">
+  {% if m.cliente %}<div><dt>Cliente solicitante</dt><dd>{{ m.cliente }}</dd></div>{% endif %}
+  {% if m.codigo_instrumento or m.denominacao %}<div><dt>Instrumento</dt><dd>{{ m.codigo_instrumento or '' }}{% if m.codigo_instrumento and m.denominacao %} — {% endif %}{{ m.denominacao or '' }}</dd></div>{% endif %}
+  {% if m.tecnico %}<div><dt>Técnico executante</dt><dd>{{ m.tecnico }}</dd></div>{% endif %}
+  {% if m.data_calibracao %}<div><dt>Data da calibração</dt><dd>{{ m.data_calibracao | fmt_data }}</dd></div>{% endif %}
+  {% if m.padrao_utilizado %}<div><dt>Padrão (MMC)</dt><dd>{{ m.padrao_utilizado }}</dd></div>{% endif %}
+  {% if m.plano_medicao %}<div><dt>Plano de medição</dt><dd>{{ m.plano_medicao }}</dd></div>{% endif %}
+  {% if m.fabricante %}<div><dt>Fabricante / fornecedor</dt><dd>{{ m.fabricante }}</dd></div>{% endif %}
+  {% if m.temperatura_ambiente %}<div><dt>Temperatura ambiente</dt><dd>{{ m.temperatura_ambiente }}</dd></div>{% endif %}
+</dl>
+
+<div class="tiles">
+  <div class="tile"><div class="n">{{ r.total_pontos }}</div><div class="l">pontos analisados</div></div>
+  <div class="tile ok"><div class="n">{{ r.dentro_da_tolerancia }}</div><div class="l">dentro da tolerância</div></div>
+  <div class="tile {{ 'bad' if r.fora_da_tolerancia else '' }}"><div class="n">{{ r.fora_da_tolerancia }}</div><div class="l">fora da tolerância</div></div>
+  <div class="tile"><div class="n">{{ r.maior_desvio_padrao | fmt(3, 7) }}</div><div class="l">maior desvio padrão (mm)</div></div>
+</div>
+
+{% if analise.avisos %}
+<div class="alerta aviso" style="margin-top:18px"><strong>Avisos do processamento</strong>
+  <ul>{% for a in analise.avisos %}<li>{{ a }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<div class="barra">
+  <h2>Resultados por ponto de ensaio</h2>
+  {% if r.fora_da_tolerancia %}<label><input type="checkbox" id="so-fora"> Mostrar só os pontos fora da tolerância</label>{% endif %}
+</div>
+<div class="tabela-wrap">
+<table id="tabela">
+  <thead><tr>
+    <th>#</th><th>Ponto</th><th>Padrão</th><th>Leituras</th><th>Média</th><th>Desv. pad.</th>
+    <th>Erro sistem.</th><th>|Erro|</th><th>LEA</th><th>Situação</th>
+  </tr></thead>
+  <tbody>
+  {% for p in analise.pontos %}
+    <tr class="{{ 'fora' if p.situacao == 'FORA_DA_TOLERANCIA' else 'dentro' }}"
+        title="Faixa admitida para a média: {{ p.limite_minimo | fmt }} a {{ p.limite_maximo | fmt }}">
+      <td>{{ p.sequencia }}</td>
+      <td class="ponto">{{ p.ponto }}</td>
+      <td>{{ p.valor_padrao | fmt }}</td>
+      <td class="leit">{% for l in p.leituras %}{{ l | fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+      <td>{{ p.media | fmt }}</td>
+      <td>{{ p.desvio_padrao | fmt }}</td>
+      <td>{{ p.erro_sistematico | fmt(3, 7, True) }}</td>
+      <td>{{ p.erro_absoluto | fmt }}</td>
+      <td>{{ p.lea_aplicado | fmt }}</td>
+      <td>{% if p.situacao == 'DENTRO_DA_TOLERANCIA' %}<span class="badge ok">✔ DENTRO_DA_TOLERANCIA</span>{% else %}<span class="badge bad">✖ FORA_DA_TOLERANCIA</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="nota">Erro sistemático = média − valor padrão · situação: |erro| ≤ LEA do lado do erro (com margem de 1×10⁻⁷ mm contra imprecisão de ponto flutuante) · passe o mouse sobre a linha para ver a faixa admitida.</p>
+
+<div class="acoes">
+  <a class="btn" href="/">Analisar outra planilha</a>
+  <button class="btn sec" type="button" onclick="window.print()">Imprimir</button>
+  <a class="btn sec" href="/historico">Ver histórico</a>
+</div>
+<script>
+(function(){
+  var cb=document.getElementById('so-fora'); if(!cb) return;
+  cb.addEventListener('change',function(){
+    document.querySelectorAll('#tabela tbody tr.dentro').forEach(function(tr){tr.style.display=cb.checked?'none':'';});
+  });
+})();
+</script>
+{% endblock %}

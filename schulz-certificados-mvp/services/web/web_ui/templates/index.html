@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% set pagina_ativa = 'inicio' %}
+{% block titulo %}Nova análise{% endblock %}
+{% block conteudo %}
+<h1>Análise de calibração por planilha</h1>
+<p class="sub">Envie a planilha Excel com as leituras do instrumento e os valores do padrão. O sistema calcula as médias, o erro sistemático, valida cada ponto contra o LEA e emite o parecer.</p>
+
+{% if erro %}
+<div class="alerta erro" role="alert">
+  <strong>{{ erro.mensagem }}</strong>
+  {% if arquivo_nome %}<span>Arquivo: {{ arquivo_nome }}</span>{% endif %}
+  {% if erro.detalhes %}<ul>{% for d in erro.detalhes[:12] %}<li>{{ d }}</li>{% endfor %}
+    {% if erro.detalhes|length > 12 %}<li>… e mais {{ erro.detalhes|length - 12 }}.</li>{% endif %}</ul>{% endif %}
+  <span style="font-size:.8rem;opacity:.8">Código: {{ erro.codigo }}</span>
+</div>
+{% endif %}
+
+<div class="upload">
+  <form class="card" id="form" action="/analisar" method="post" enctype="multipart/form-data">
+    <label class="drop" id="drop">
+      <input type="file" name="arquivo" id="arquivo" accept=".xlsx,.xlsm" required>
+      <span class="t">Escolha ou arraste a planilha (.xlsx)</span>
+      <span class="nome" id="nome" aria-live="polite">Nenhum arquivo selecionado</span>
+      <span style="color:var(--muted);font-size:.85rem">Tamanho máximo: 5 MB</span>
+    </label>
+    <div class="acoes">
+      <button class="btn" id="enviar" type="submit" disabled>Processar planilha</button>
+      <a class="btn sec" href="/modelo">Baixar modelo de planilha</a>
+    </div>
+  </form>
+  <div class="card">
+    <strong>Formatos aceitos</strong>
+    <ul class="simples">
+      <li><b>Modelo simples</b>: Ponto, Valor padrão, LEA, Leitura 1, Leitura 2…</li>
+      <li><b>Registro da Schulz</b>: Parâmetro avaliado, Valor nominal, Tol. +, Tol. −, Medida 1, Medida 2 (inclusive arquivos em formato Excel “strict”).</li>
+      <li><b>Relatório do Calypso</b>: Characteristic, Actual, Nominal, Upper Tol, Lower Tol, com as duas rodadas de medição.</li>
+    </ul>
+    <p class="nota">Regra do parecer: <b>APROVADO</b> somente se todos os pontos tiverem |erro| ≤ LEA.</p>
+  </div>
+</div>
+<p class="status-srv"><span class="dot {{ 'ok' if servico_ok else 'off' }}"></span>Serviço de metrologia: {{ 'disponível' if servico_ok else 'indisponível' }}</p>
+
+<script>
+(function(){
+  var inp=document.getElementById('arquivo'), nome=document.getElementById('nome'),
+      btn=document.getElementById('enviar'), drop=document.getElementById('drop'), form=document.getElementById('form');
+  function atualizar(){
+    var f=inp.files&&inp.files[0];
+    nome.textContent=f?f.name:'Nenhum arquivo selecionado';
+    btn.disabled=!f;
+  }
+  inp.addEventListener('change',atualizar);
+  ['dragenter','dragover'].forEach(function(e){drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.add('sobre');});});
+  ['dragleave','drop'].forEach(function(e){drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.remove('sobre');});});
+  drop.addEventListener('drop',function(ev){ if(ev.dataTransfer.files.length){inp.files=ev.dataTransfer.files;atualizar();} });
+  form.addEventListener('submit',function(){btn.disabled=true;btn.textContent='Processando…';});
+  atualizar();
+})();
+</script>
+{% endblock %}
